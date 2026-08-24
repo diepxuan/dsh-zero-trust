@@ -6,15 +6,11 @@ Claude phải xem đây là file điều hướng instruction, không phải ngu
 
 ## 1. Bắt buộc đọc trước khi làm việc
 
-Khi bắt đầu session trong workspace này, Claude phải đọc các file sau theo thứ tự:
+Khi bắt đầu session trong workspace này, Claude phải đọc theo đúng boot sequence tại `SOUL.md` §4:
 
-1. `AGENTS.md`
-2. `SOUL.md`
-3. `TOOLS.md`
-4. `IDENTITY.md`
-5. `USER.md`
-6. `HEARTBEAT.md`
-7. `MEMORY.md`
+```text
+SOUL.md → USER.md → IDENTITY.md → TOOLS.md → memory/<hôm-nay>.md → memory/<hôm-qua>.md (nếu có) → MEMORY.md → README.md
+```
 
 Nếu một file không tồn tại hoặc không đọc được, phải báo rõ file nào thiếu trước khi thực hiện task có rủi ro.
 
@@ -72,17 +68,17 @@ Claude phải vận hành như Bột:
 
 ## 5. Ranh giới kỹ thuật
 
-Dự án là DSH plugin (Node.js ESM) giữ chức năng Settings của web GUI DeepSeek Harness khi truy cập qua tên miền công khai đặt sau Cloudflare Access, bằng cách neutralize đúng các gate loopback-only ở phía client.
+Dự án là DSH plugin (Node.js ESM) giữ chức năng Settings của web GUI DeepSeek Harness khi truy cập qua tên miền công khai đặt sau Cloudflare Access, bằng cách neutralize đúng các gate loopback phía client và nới fence Origin phía server theo `trustedHosts`.
 
 Nguyên tắc bắt buộc:
 
-- Chỉ neutralize đúng 3 gate `connection.isLoopback` mô tả trong README.md; transform pure function nằm ở `lib/patch.js`.
-- Patch idempotent; backup `.bak-zero-trust` tạo một lần và bất biến.
-- Không hạ lớp bảo vệ nào khác: trust fence privileged RPC server-side, `--trusted-host`, Cloudflare Access.
+- Chỉ neutralize đúng 4 nhóm gate mô tả trong README.md; transform pure function nằm ở `lib/patch.js`.
+- Patch idempotent; plugin không tạo file backup — rollback = cài lại package DSH.
+- Không hạ lớp bảo vệ nào khác: cross-site/DNS-rebinding checks, `--trusted-host`, Cloudflare Access.
 - Không tự restart `dsh-web` hay thao tác ghi vào `/root/.dsh/profiles/` mà không xin Sếp.
-- Repo chưa có git: không tự `git init`; khi có repo thì không push/tạo PR/merge nếu Sếp không yêu cầu rõ.
+- Remote `git@github.com:diepxuan/dsh-zero-trust.git`, branch chính `main`: mỗi task = 1 branch = 1 PR, không commit thẳng `main`; không push/tạo PR/merge nếu Sếp không yêu cầu rõ.
 - Không tự cài/publish package (`npm install/publish`) khi chưa được Sếp chấp thuận.
-- Plugin chỉ là nửa client; nửa edge Cloudflare (ingress `httpHostHeader`, remove `Origin`, Access Bypass manifest/favicon) thuộc hạ tầng — chỉ tham khảo/thu thập thông tin, không tự sửa.
+- Plugin vá nửa client và fence Origin phía server; nửa edge Cloudflare (ingress `httpHostHeader`, Access Bypass manifest/favicon; Transform Rule Remove Origin đã bỏ từ v0.2.0) thuộc hạ tầng — chỉ tham khảo/thu thập thông tin, không tự sửa.
 
 ## 6. Task completion cycle
 
