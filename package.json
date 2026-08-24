@@ -1,0 +1,18 @@
+{
+  "name": "@diepxuan/dsh-zero-trust",
+  "description": "Zero-trust remote access layer for the DSH web GUI: keeps browser-side settings persistence enabled and teaches the server Origin fence the declared trusted hosts behind Cloudflare Access, by neutralizing the loopback-only gates at boot",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./patch": "./lib/patch.js"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "license": "MIT"
+}

@@ -1,0 +1,87 @@
+# AGENTS.md - Operating Instructions (@diepxuan/dsh-zero-trust)
+
+Operating instructions cho Bột trên dự án `@diepxuan/dsh-zero-trust`. Xem SOUL.md cho bản sắc, IDENTITY.md cho chi tiết identity.
+
+---
+
+## 0. Boot Sequence
+
+Mỗi session PHẢI đọc theo đúng thứ tự trong SOUL.md §4:
+
+1. **SOUL.md** → 2. **USER.md** → 3. **IDENTITY.md** → 4. **TOOLS.md** → 5. `memory/<hôm-nay>.md` → 6. `memory/<hôm-qua>.md` (nếu có) → 7. **MEMORY.md** (chỉ MAIN SESSION) → 8. **README.md**
+
+KHÔNG chỉ đọc AGENTS.md rồi thao tác luôn. Nếu có xung đột, ưu tiên: chỉ dẫn mới nhất của Sếp → SOUL.md → USER.md → IDENTITY.md → AGENTS.md → tài liệu dự án còn lại.
+
+---
+
+## 1. Code Scope
+
+Repo nhỏ — toàn bộ nguồn gồm 5 file:
+
+| Ưu tiên | Vị trí | Ghi chú |
+|---------|--------|---------|
+| Chính | `lib/index.js`, `lib/patch.js` | host plugin + pure transforms |
+| Hạn chế | `package.json`, `cordis.patch.yml` | metadata/exports/bundle wiring — chỉ sửa khi task yêu cầu rõ |
+| Hạn chế | `README.md` | chỉ cập nhật khi cơ chế thật sự đổi |
+
+### Code Architecture: quy tắc vá bắt buộc
+
+- Transform là **pure function**, đặt ở `lib/patch.js`; `lib/index.js` chỉ lo locate anchor, apply idempotent, report.
+- Chỉ neutralize đúng 3 gate đã mô tả trong README.md:
+  - Gate 1–2: `connection.isLoopback ? "host" : "memory"` trong `@deepseek-ai/dsh-client-ui-settings`.
+  - Gate 3: `connection.isLoopback ? new SettingsDocumentStore(…) : void 0` trong `@deepseek-ai/dsh-client-ui-settings-general`.
+- Trước khi ghi file phải qua `needsPatch()`; pattern KHÔNG còn match sau khi vá.
+- Backup `<file>.bak-zero-trust` tạo đúng một lần; backup đã tồn tại thì KHÔNG ghi đè.
+- KHÔNG thêm behavior mới (network call, telemetry, logic khác) vào file bị vá.
+- KHÔNG thêm anchor đường dẫn mới ngoài 3 anchor hiện có nếu chưa đọc chứng thực thực tế.
+
+---
+
+## 2. Domain Knowledge (DSH)
+
+- Nguồn sự thật: `README.md` của dự án + mã thật của các package `@deepseek-ai/dsh-client-ui-settings*` trong `/root/.dsh/profiles/node_modules/`. KHÔNG bịa cấu trúc bên trong package DSH.
+- Sau mỗi lần nâng cấp DSH (`npm i -g @deepseek-ai/dsh@latest`), gate gốc quay lại trong file mới — lần boot kế tiếp plugin tự vá lại. KHÔNG vá tay bằng sed/script thủ công.
+- Web runtime đọc file client từ đĩa theo từng request → sau khi vá chỉ cần refresh trình duyệt (Ctrl+Shift+R), không cần restart service.
+- Plugin chỉ là nửa client. Nửa edge (Cloudflare) phải đi kèm: ingress `httpHostHeader: "127.0.0.1"`, Transform Rule remove header `Origin`, `dsh web --trusted-host dsh.diepxuan.io.vn`, Access Bypass cho `/manifest.webmanifest` + `/favicon.svg`. Chi tiết: README.md mục "Yêu cầu cấu hình edge".
+- KHÔNG đề xuất hay thực hiện xóa bỏ bất kỳ lớp bảo vệ nào khác (trust fence privileged RPC server-side, Cloudflare Access ở edge).
+
+---
+
+## 3. Git Discipline
+
+- Repo CHƯA khởi tạo git. KHÔNG tự `git init`; chỉ khởi tạo khi Sếp yêu cầu rõ.
+- Khi đã có repo:
+  - Mỗi task = 1 branch = 1 PR
+  - Không tự push / tạo PR / merge; chỉ khi Sếp nói "Em tạo PR đi"
+  - Merge PR dùng `gh pr merge <N> --squash --delete-branch`, KHÔNG `git merge` local (trừ khi Sếp nói rõ cherry-pick / gộp branch / rebase local)
+
+---
+
+## 4. Task Completion Cycle
+
+Khi nhận task, phải đi hết vòng đời:
+
+1. **Đọc task + source** — README.md, mã trong `lib/`
+2. **Audit** — xác định gate/anchor/target bị ảnh hưởng; đọc file thật trong profile nếu cần (read-only OK)
+3. **Implement** — đúng scope, không bịa pattern mới ngoài thực tế code
+4. **Self-review** — idempotency, backup, không đụng lớp bảo vệ khác
+5. **Verification** — `node --check lib/index.js lib/patch.js`; thử transform trên bản sao trong `/tmp` (không ghi vào profile); đối chiếu report line kỳ vọng
+6. **Review loop** — fix theo comment
+7. **Documentation** — cập nhật README.md/MEMORY.md khi cơ chế đổi
+8. **Báo cáo cuối** — bằng chứng cụ thể
+
+### Guard rails
+
+- Nếu thiếu dữ kiện: đọc source trước; nếu vẫn thiếu thì hỏi Sếp
+- Khi gặp lỗi: dừng, phân tích nguyên nhân, không vá mù
+- KHÔNG tự chạy các lệnh nhóm "Ghi cần xin phép" trong TOOLS.md (`systemctl restart dsh-web`, `dsh plugin … add/remove`, chạy patcher ghi vào profile, xóa `.bak-zero-trust`)
+- Definition of Done: diff sạch, syntax check pass, bằng chứng kiểm chứng rõ ràng
+- Workspace nằm ở `/data/dsh-zero-trust/` — ngoài session workspace mặc định của runtime thì mọi thao tác ghi phải qua cơ chế escalation, xem TOOLS.md
+
+---
+
+## 5. Sub-Agents
+
+- Gọi là **đệ**
+- Mô tả rõ: mục tiêu, input, output, giới hạn quyền
+- Đệ không được vượt quyền Bột, KHÔNG được tự thao tác ghi vào `/root/.dsh/` hay restart service

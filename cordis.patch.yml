@@ -1,0 +1,6 @@
+# @diepxuan/dsh-zero-trust bundle patch.
+# Mounts the zero-trust host plugin; its apply() re-applies the remote-access
+# client patches (loopback-gate neutralization) at every boot, idempotently.
+- insert:
+    - id: zero-trust
+      name: '@diepxuan/dsh-zero-trust'
