@@ -13,16 +13,16 @@ File này ghi chú các chi tiết riêng của môi trường `@diepxuan/dsh-ze
 | Thành phần | Giá trị | Ghi chú |
 |------------|---------|---------|
 | Checkout DSH | `/root/.npm-global/lib/node_modules/@deepseek-ai/dsh/` | đọc mã nguồn DSH chuẩn |
-| GUI local | `http://127.0.0.1:3080` | truy cập qua domain public hoặc theo chỉ dẫn Sếp khi verify |
-| Profile | `/root/.dsh/profiles/node_modules/` | chứa các package UI bị vá — vùng ghi NHAY CẢM |
-| Service | systemd unit `dsh-web` | restart giết session agent đang chạy trong service |
+| Package đích bị vá | `/root/.npm-global/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/` | chứa `dsh-client-ui-settings*`, `dsh-client-connection` — vùng ghi NHẠY CẦM |
+| Profile web | `/root/.dsh/profiles/web/` | bundle `@diepxuan/dsh-zero-trust` mount tại đây (`dsh.profile.bundles`) |
+| Service | systemd unit `dsh-web` | `DSH_HOME=/root/.dsh`, cwd `/root/.openclaw`; restart giết session agent đang chạy trong service |
 
 ## Vòng đời plugin (tóm tắt vận hành)
 
 1. Mount qua `cordis.patch.yml` (loader row `zero-trust`) sau khi `dsh plugin --profile web add /data/dsh-zero-trust`.
 2. Mỗi boot: `apply()` → `resolveTargetClient()` theo 3 anchor (`$DSH_HOME/profiles/node_modules`, resolve từ cwd, vị trí cài plugin) → `needsPatch()` ? transform + write : SKIP/OK.
 3. Report line ghi ra stderr → xem bằng chứng bằng `journalctl -u dsh-web`.
-4. Rollback: khôi phục từ `.bak-zero-trust` theo hướng dẫn README.md, rồi gỡ bundle.
+4. Rollback: cài lại package DSH (`npm i -g @deepseek-ai/dsh@latest`) lấy nguồn gốc, rồi gỡ bundle theo README.md (plugin không tạo `.bak`).
 
 ## Phân nhóm lệnh theo quyền
 
@@ -46,8 +46,7 @@ File này ghi chú các chi tiết riêng của môi trường `@diepxuan/dsh-ze
 - `node lib/index.js` (CLI standalone) — ghi đè file trong `/root/.dsh/profiles/`
 - `systemctl restart/reload/stop/start dsh-web` — kết thúc session agent đang chạy trong service
 - `dsh plugin --profile web add/remove /data/dsh-zero-trust` — thay đổi bundle profile
-- Xóa/sửa `.bak-zero-trust`
-- `git init`, `git remote add`, push, PR, merge (khi có repo)
+- `git push`, `gh pr create/edit`, `gh pr merge/close` — thao tác remote/GitHub; chỉ khi Sếp ra lệnh ("push đi", "Em tạo PR đi", "merge")
 - `npm install/publish`, tải package, gọi API mutation bên ngoài
 - Mọi lệnh ghi ra ngoài workspace (`/root/.dsh/`, `/etc/systemd/`, ...)
 - Bất kỳ lệnh nào fail do sandbox/network/permission nhưng vẫn cần chạy để hoàn thành task
@@ -66,5 +65,6 @@ File này ghi chú các chi tiết riêng của môi trường `@diepxuan/dsh-ze
 
 ## Lưu ý verify sau khi vá
 
-- Sau khi file client được vá, hiệu lực ngay ở request kế tiếp: yêu cầu Sếp refresh trình duyệt (Ctrl+Shift+R); KHÔNG tự restart `dsh-web`.
+- Gate 1–2 (client) sau khi vá hiệu lực ngay ở request kế tiếp: yêu cầu Sếp refresh trình duyệt (Ctrl+Shift+R); KHÔNG tự restart `dsh-web`.
+- Gate 3–4 (`dsh-client-connection`, server) cần restart `dsh-web` một lần để code vá vào bộ nhớ — chỉ restart khi Sếp duyệt.
 - Bằng chứng vá thành công lấy từ report line trong `journalctl -u dsh-web` (PATCH/SKIP/OK per package).

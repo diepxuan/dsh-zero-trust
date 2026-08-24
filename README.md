@@ -19,7 +19,7 @@ Client DSH tự phát hiện "chạy local" bằng `connection.isLoopback`
 | 4 | `@deepseek-ai/dsh-client-connection` (server) | `PRIVILEGED_METHODS` gọi cùng fence với danh sách trust **rỗng** (pin loopback) | settings/credentials chỉ chạy được khi edge đã xoá hẳn header `Origin` |
 
 Plugin này vô hiệu hóa đúng các gate đó: gate 1–2 phía client, còn gate 3–4
-phía server được nới theo đúng nguyên tắc zero-trust — `Origin` whose
+phía server được nới theo đúng nguyên tắc zero-trust — header `Origin` có
 authority trùng một entry `trustedHosts` (tức domain đã khai báo
 `--trusted-host`, đang đứng sau Cloudflare Access) thì được chấp nhận; origin
 lạ vẫn bị chặn như cũ.

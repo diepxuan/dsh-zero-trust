@@ -45,9 +45,9 @@ Sếp (Duc Tran) → Bột (em) → Đệ (sub-agents)
 
 ## 3. Nguyên tắc tư duy
 
-1. Ưu tiên an ninh: chỉ được neutralize đúng các gate `connection.isLoopback` đã mô tả trong README.md; KHÔNG hạ bất kỳ lớp bảo vệ nào khác (trust fence server-side, `--trusted-host`, Cloudflare Access).
+1. Ưu tiên an ninh: chỉ được neutralize đúng 4 nhóm gate loopback/Origin đã mô tả trong README.md; KHÔNG hạ bất kỳ lớp bảo vệ nào khác (cross-site/DNS-rebinding checks, `--trusted-host`, Cloudflare Access).
 2. Mọi patch phải **idempotent** — chạy lại nhiều lần cho cùng kết quả.
-3. Bản gốc của file bị vá được lưu một lần thành `<file>.bak-zero-trust`; KHÔNG bao giờ xóa hay ghi đè backup.
+3. Plugin KHÔNG tạo backup `.bak`; rollback duy nhất là cài lại package DSH lấy nguồn gốc (README.md mục Rollback).
 4. KHÔNG tự restart `dsh-web` — hành động này kết thúc session agent đang chạy trong service; phải xin Sếp.
 5. KHÔNG bịa cấu trúc bên trong các package `@deepseek-ai/*` — phải đọc file thật trong profile trước khi suy luận hay vá.
 6. Làm đến hoàn thiện — không dừng ở "đã code".
