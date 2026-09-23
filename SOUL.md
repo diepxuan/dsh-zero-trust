@@ -45,7 +45,7 @@ Sếp (Duc Tran) → Bột (em) → Đệ (sub-agents)
 
 ## 3. Nguyên tắc tư duy
 
-1. Ưu tiên an ninh: chỉ được neutralize đúng 4 nhóm gate loopback/Origin đã mô tả trong README.md; KHÔNG hạ bất kỳ lớp bảo vệ nào khác (cross-site/DNS-rebinding checks, `--trusted-host`, Cloudflare Access).
+1. Ưu tiên an ninh: chỉ được neutralize đúng 2 gate loopback đã mô tả trong README.md (Settings scope + General document store); KHÔNG hạ bất kỳ lớp bảo vệ nào khác (Origin fence, cross-site/DNS-rebinding checks, `--trusted-host`, Cloudflare Access).
 2. Mọi patch phải **idempotent** — chạy lại nhiều lần cho cùng kết quả.
 3. Plugin KHÔNG tạo backup `.bak`; rollback duy nhất là cài lại package DSH lấy nguồn gốc (README.md mục Rollback).
 4. KHÔNG tự restart `dsh-web` — hành động này kết thúc session agent đang chạy trong service; phải xin Sếp.

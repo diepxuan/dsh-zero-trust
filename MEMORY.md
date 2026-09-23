@@ -10,7 +10,7 @@ Cập nhật lần cuối: khởi tạo cùng bộ 8 file instruction (theo yêu
 
 - Patch idempotent; luôn qua `needsPatch()` trước khi ghi file đích.
 - Plugin KHÔNG tạo backup `.bak`; rollback duy nhất = cài lại package DSH lấy nguồn gốc (quyết định của Sếp khi sync instruction v0.2).
-- Chỉ neutralize đúng 4 nhóm gate theo README: gate 1 settings scope ×2, gate 2 general document store, gate 3 Origin fence `/api`, gate 4 privileged plane; mọi lớp bảo vệ khác (cross-site/DNS-rebinding checks, `--trusted-host`, Cloudflare Access) bất biến.
+- Chỉ neutralize đúng 2 gate loopback theo README: gate 1 settings scope, gate 2 general document store; pattern neo vế phải, key-agnostic; KHÔNG vá server (Origin fence đã hỗ trợ trustedHosts upstream, privileged plane đã dùng browserAuth). Mọi lớp bảo vệ khác (Origin fence, cross-site/DNS-rebinding, `--trusted-host`, Cloudflare Access) bất biến.
 - KHÔNG tự `systemctl restart dsh-web` — giết session agent đang chạy trong service.
 - KHÔNG tự chạy patcher ghi vào `/root/.dsh/profiles/` — cần Sếp duyệt.
 - Remote `git@github.com:diepxuan/dsh-zero-trust.git`, branch `main`; mỗi task = 1 branch = 1 PR, không commit thẳng `main`, không tự push/PR/merge.
@@ -38,17 +38,36 @@ Cập nhật lần cuối: khởi tạo cùng bộ 8 file instruction (theo yêu
 
 - v0.2.0: vá thêm gate 3–4 (Origin fence + privileged plane trong `dsh-client-connection`) để bỏ Transform Rule Remove Origin ở Cloudflare.
 - Khởi tạo repo git, first commit `00e1047` lên `main` và push origin (theo lệnh trực tiếp của Sếp).
-- Review + sync toàn bộ instruction files với thực trạng v0.2.0 (branch `docs/instruction-sync-v0.2`, PR cho Sếp review).
+- Sync instruction files với v0.2.0 (PR #1 merged `c8ea873`).
+- v0.3.0: re-audit thực tế phát hiện DSH upstream đã sửa Origin fence và bỏ `PRIVILEGED_METHODS`. Thu hẹp plugin về 2 client gate, regex neo vế phải (key-agnostic qua cả `connection.isLoopback` và `ctx.remote.$host.isLoopback`). Đồng bộ README + toàn bộ instruction files.
 
 ---
 
 ## 3. Bài học rút ra
 
-(trống)
+Sếp yêu cầu kiểm tra `https://dsh.diepxuan.io.vn/` (curl, không cookie).
+Quan sát 2026-09-24 02:18 +07:
+- `/`, `/manifest.webmanifest`, `/favicon.svg`, `/__nope_not_found__` đều trả
+  302 về `diepxuan.cloudflareaccess.com/cdn-cgi/access/login/dsh.diepxuan.io.vn`.
+  Header `www-authenticate: Cloudflare-Access resource_metadata=...` có ở cả
+  manifest và favicon — tức Access vẫn áp policy mặc định lên chúng.
+- Form Access chỉ có OTP email (`Send login code`), không có social/SSO.
+- `127.0.0.1:3080` trả 401 (Origin fence, bình thường khi gọi thẳng).
+- `systemctl status dsh-web` -> active; daemon chạy
+  `--trusted-host dsh.diepxuan.io.vn` đúng README.
+- `journalctl -u dsh-web` cho thấy plugin vẫn patch OK (2 gate UI-settings +
+  gate client-connection `removed 1 client-connection Origin fence gates`).
+- Tunnel `cloudflared` active.
+Kết luận: lỗi không thuộc plugin/DSH service/tunnel; nguyên nhân là
+Cloudflare Access thiếu Bypass policy cho `/manifest.webmanifest` và
+`/favicon.svg` (README mục "Yêu cầu cấu hình edge" mục 3). Sửa bằng cách
+vào Cloudflare Zero Trust -> Access -> Applications -> thêm Self-hosted Bypass
+app cho 2 path đó (Include Everyone), rồi refresh trình duyệt.
+
 
 ---
 
 ## 4. Backlog / Open questions
 
 - Anchor resolve của plugin nghi vấn không trúng package thật: unit `dsh-web` chạy với `DSH_HOME=/root/.dsh` + cwd `/root/.openclaw`, cả 3 anchor hiện có đều không dẫn tới checkout global `/root/.npm-global/.../@deepseek-ai/`. Cần mô phỏng resolve trong môi trường systemd và cân nhắc thêm anchor checkout (đã đủ chứng thực thực tế theo AGENTS.md §1).
-- Gate 3–4 (client-connection) CHƯA được vá trên máy thật — file server còn trạng thái gốc; cần Sếp duyệt chạy `node lib/index.js` + `systemctl restart dsh-web` trước khi xoá Transform Rule Remove Origin trên Cloudflare.
+- Sau khi áp v0.3.0: confirm end-to-end qua `https://dsh.diepxuan.io.vn` — mở Settings, mở Credentials xem persistence = "host" và document store hoạt động (cần Sếp duyệt chạy `node lib/index.js` + `systemctl restart dsh-web` vì anchor resolve còn nghi vấn).
