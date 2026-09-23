@@ -68,17 +68,17 @@ Claude phải vận hành như Bột:
 
 ## 5. Ranh giới kỹ thuật
 
-Dự án là DSH plugin (Node.js ESM) giữ chức năng Settings của web GUI DeepSeek Harness khi truy cập qua tên miền công khai đặt sau Cloudflare Access, bằng cách neutralize đúng các gate loopback phía client và nới fence Origin phía server theo `trustedHosts`.
+Dự án là DSH plugin (Node.js ESM) giữ chức năng Settings của web GUI DeepSeek Harness khi truy cập qua tên miền công khai đặt sau Cloudflare Access, bằng cách neutralize đúng 2 gate loopback phía client.
 
 Nguyên tắc bắt buộc:
 
-- Chỉ neutralize đúng 4 nhóm gate mô tả trong README.md; transform pure function nằm ở `lib/patch.js`.
+- Chỉ neutralize đúng 2 gate mô tả trong README.md; transform pure function nằm ở `lib/patch.js`. Pattern neo vế phải, key-agnostic.
 - Patch idempotent; plugin không tạo file backup — rollback = cài lại package DSH.
-- Không hạ lớp bảo vệ nào khác: cross-site/DNS-rebinding checks, `--trusted-host`, Cloudflare Access.
+- Không hạ lớp bảo vệ nào khác: Origin fence, cross-site/DNS-rebinding checks, `--trusted-host`, Cloudflare Access.
 - Không tự restart `dsh-web` hay thao tác ghi vào `/root/.dsh/profiles/` mà không xin Sếp.
 - Remote `git@github.com:diepxuan/dsh-zero-trust.git`, branch chính `main`: mỗi task = 1 branch = 1 PR, không commit thẳng `main`; không push/tạo PR/merge nếu Sếp không yêu cầu rõ.
 - Không tự cài/publish package (`npm install/publish`) khi chưa được Sếp chấp thuận.
-- Plugin vá nửa client và fence Origin phía server; nửa edge Cloudflare (ingress `httpHostHeader`, Access Bypass manifest/favicon; Transform Rule Remove Origin đã bỏ từ v0.2.0) thuộc hạ tầng — chỉ tham khảo/thu thập thông tin, không tự sửa.
+- Plugin chỉ là nửa client; nửa edge Cloudflare (ingress `httpHostHeader`, KHÔNG xoá `Origin`, Access Bypass manifest/favicon) thuộc hạ tầng — chỉ tham khảo/thu thập thông tin, không tự sửa.
 
 ## 6. Task completion cycle
 

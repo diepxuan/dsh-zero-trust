@@ -13,7 +13,7 @@ File này ghi chú các chi tiết riêng của môi trường `@diepxuan/dsh-ze
 | Thành phần | Giá trị | Ghi chú |
 |------------|---------|---------|
 | Checkout DSH | `/root/.npm-global/lib/node_modules/@deepseek-ai/dsh/` | đọc mã nguồn DSH chuẩn |
-| Package đích bị vá | `/root/.npm-global/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/` | chứa `dsh-client-ui-settings*`, `dsh-client-connection` — vùng ghi NHẠY CẦM |
+| Package đích bị vá | `/root/.npm-global/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-client-ui-settings*/lib/client.js` | chứa 2 gate loopback cần neutralize — vùng ghi NHẠY CẢM |
 | Profile web | `/root/.dsh/profiles/web/` | bundle `@diepxuan/dsh-zero-trust` mount tại đây (`dsh.profile.bundles`) |
 | Service | systemd unit `dsh-web` | `DSH_HOME=/root/.dsh`, cwd `/root/.openclaw`; restart giết session agent đang chạy trong service |
 
@@ -65,6 +65,5 @@ File này ghi chú các chi tiết riêng của môi trường `@diepxuan/dsh-ze
 
 ## Lưu ý verify sau khi vá
 
-- Gate 1–2 (client) sau khi vá hiệu lực ngay ở request kế tiếp: yêu cầu Sếp refresh trình duyệt (Ctrl+Shift+R); KHÔNG tự restart `dsh-web`.
-- Gate 3–4 (`dsh-client-connection`, server) cần restart `dsh-web` một lần để code vá vào bộ nhớ — chỉ restart khi Sếp duyệt.
+- Sau khi file client được vá, hiệu lực ngay ở request kế tiếp: yêu cầu Sếp refresh trình duyệt (Ctrl+Shift+R); KHÔNG tự restart `dsh-web`.
 - Bằng chứng vá thành công lấy từ report line trong `journalctl -u dsh-web` (PATCH/SKIP/OK per package).

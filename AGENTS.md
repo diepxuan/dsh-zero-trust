@@ -27,11 +27,10 @@ Repo nhỏ — toàn bộ nguồn gồm 5 file:
 ### Code Architecture: quy tắc vá bắt buộc
 
 - Transform là **pure function**, đặt ở `lib/patch.js`; `lib/index.js` chỉ lo locate anchor, apply idempotent, report.
-- Chỉ neutralize đúng 4 nhóm gate đã mô tả trong README.md:
-  - Gate 1 (2 chỗ): `connection.isLoopback ? "host" : "memory"` trong `@deepseek-ai/dsh-client-ui-settings`.
-  - Gate 2: `connection.isLoopback ? new SettingsDocumentStore(…) : void 0` trong `@deepseek-ai/dsh-client-ui-settings-general`.
-  - Gate 3: fence `/api` so `Origin` với Host — chấp nhận `Origin` khớp entry `trustedHosts`, trong `@deepseek-ai/dsh-client-connection/lib/index.js` (phía server).
-  - Gate 4: privileged plane (`PRIVILEGED_METHODS`) cùng file — truyền `trustedHosts` thay vì danh sách rỗng.
+- Chỉ neutralize đúng 2 gate đã mô tả trong README.md:
+  - Gate 1: `<key>.isLoopback ? "host" : "memory"` trong `@deepseek-ai/dsh-client-ui-settings/lib/client.js`.
+  - Gate 2: `<key>.isLoopback ? new SettingsDocumentStore(…) : void 0` trong `@deepseek-ai/dsh-client-ui-settings-general/lib/client.js`.
+  Pattern neo vế phải của ternary, không phụ thuộc `<key>` (cover cả `connection.isLoopback` cũ và `ctx.remote.$host.isLoopback` mới). KHÔNG vá server-side Origin fence (`@deepseek-ai/dsh-client-connection`): upstream đã hỗ trợ `trustedHosts` và privileged plane đã dùng `browserAuth`.
 - Trước khi ghi file phải qua `needsPatch()`; pattern KHÔNG còn match sau khi vá.
 - Plugin KHÔNG tạo file backup `.bak-*`; rollback duy nhất = cài lại package DSH lấy nguồn gốc (README.md mục Rollback).
 - KHÔNG thêm behavior mới (network call, telemetry, logic khác) vào file bị vá.
@@ -41,11 +40,11 @@ Repo nhỏ — toàn bộ nguồn gồm 5 file:
 
 ## 2. Domain Knowledge (DSH)
 
-- Nguồn sự thật: `README.md` của dự án + mã thật của các package đích (`dsh-client-ui-settings*`, `dsh-client-connection`) trong checkout DSH: `/root/.npm-global/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/`. KHÔNG bịa cấu trúc bên trong package DSH.
+- Nguồn sự thật: `README.md` của dự án + mã thật của các package đích (`dsh-client-ui-settings*`) trong checkout DSH: `/root/.npm-global/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/`. KHÔNG bịa cấu trúc bên trong package DSH.
 - Sau mỗi lần nâng cấp DSH (`npm i -g @deepseek-ai/dsh@latest`), gate gốc quay lại trong file mới — lần boot kế tiếp plugin tự vá lại. KHÔNG vá tay bằng sed/script thủ công.
-- Web runtime đọc file client từ đĩa theo từng request → gate 1–2 chỉ cần refresh trình duyệt (Ctrl+Shift+R); gate 3–4 thuộc code server, cần restart `dsh-web` một lần.
-- Plugin vá cả nửa client và fence Origin phía server. Nửa edge (Cloudflare) đi kèm: ingress `httpHostHeader: "127.0.0.1"`, `dsh web --trusted-host dsh.diepxuan.io.vn` (bắt buộc — bản vá nhận diện domain qua danh sách này), Access Bypass cho `/manifest.webmanifest` + `/favicon.svg`. Từ v0.2.0 KHÔNG còn cần Transform Rule Remove Origin. Chi tiết: README.md mục "Yêu cầu cấu hình edge".
-- KHÔNG đề xuất hay thực hiện xóa bỏ bất kỳ lớp bảo vệ nào khác (trust fence privileged RPC server-side, Cloudflare Access ở edge).
+- Web runtime đọc file client từ đĩa theo từng request → sau khi vá chỉ cần refresh trình duyệt (Ctrl+Shift+R), không cần restart service.
+- Plugin chỉ là nửa client. Nửa edge (Cloudflare) phải đi kèm: ingress `httpHostHeader: "127.0.0.1"`, KHÔNG xoá header `Origin` ở edge (fence `/api` đọc nó), `dsh web --trusted-host dsh.diepxuan.io.vn`, Access Bypass cho `/manifest.webmanifest` + `/favicon.svg`. Chi tiết: README.md mục "Yêu cầu cấu hình edge".
+- KHÔNG đề xuất hay thực hiện xoá bỏ bất kỳ lớp bảo vệ nào khác (Origin fence, cross-site/DNS-rebinding checks, `--trusted-host`, Cloudflare Access).
 
 ---
 
