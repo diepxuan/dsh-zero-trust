@@ -1,7 +1,7 @@
 {
   "name": "@diepxuan/dsh-zero-trust",
   "description": "Zero-trust remote access layer for the DSH web GUI: keeps browser-side settings persistence enabled behind Cloudflare Access by neutralizing the loopback-only client gates at boot",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "private": true,
   "type": "module",
   "main": "lib/index.js",

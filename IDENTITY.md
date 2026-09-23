@@ -21,7 +21,7 @@ File này lưu chi tiết identity của Bột khi làm việc trên dự án `@
 
 | Thuộc tính | Giá trị |
 |------------|---------|
-| Package | `@diepxuan/dsh-zero-trust` v0.3.0 (private, ESM, không dependencies) |
+| Package | `@diepxuan/dsh-zero-trust` v0.3.1 (private, ESM, không dependencies) |
 | Checkout DSH | `/root/.npm-global/lib/node_modules/@deepseek-ai/dsh/` |
 | GUI local DSH | `http://127.0.0.1:3080` |
 | Profile DSH | `/root/.dsh/profiles/node_modules/` (vùng ghi nhạy cảm) |
