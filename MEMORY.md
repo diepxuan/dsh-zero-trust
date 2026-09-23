@@ -45,7 +45,25 @@ Cập nhật lần cuối: khởi tạo cùng bộ 8 file instruction (theo yêu
 
 ## 3. Bài học rút ra
 
-(trống)
+Sếp yêu cầu kiểm tra `https://dsh.diepxuan.io.vn/` (curl, không cookie).
+Quan sát 2026-09-24 02:18 +07:
+- `/`, `/manifest.webmanifest`, `/favicon.svg`, `/__nope_not_found__` đều trả
+  302 về `diepxuan.cloudflareaccess.com/cdn-cgi/access/login/dsh.diepxuan.io.vn`.
+  Header `www-authenticate: Cloudflare-Access resource_metadata=...` có ở cả
+  manifest và favicon — tức Access vẫn áp policy mặc định lên chúng.
+- Form Access chỉ có OTP email (`Send login code`), không có social/SSO.
+- `127.0.0.1:3080` trả 401 (Origin fence, bình thường khi gọi thẳng).
+- `systemctl status dsh-web` -> active; daemon chạy
+  `--trusted-host dsh.diepxuan.io.vn` đúng README.
+- `journalctl -u dsh-web` cho thấy plugin vẫn patch OK (2 gate UI-settings +
+  gate client-connection `removed 1 client-connection Origin fence gates`).
+- Tunnel `cloudflared` active.
+Kết luận: lỗi không thuộc plugin/DSH service/tunnel; nguyên nhân là
+Cloudflare Access thiếu Bypass policy cho `/manifest.webmanifest` và
+`/favicon.svg` (README mục "Yêu cầu cấu hình edge" mục 3). Sửa bằng cách
+vào Cloudflare Zero Trust -> Access -> Applications -> thêm Self-hosted Bypass
+app cho 2 path đó (Include Everyone), rồi refresh trình duyệt.
+
 
 ---
 
